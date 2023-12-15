@@ -10,272 +10,294 @@ using System.Windows.Forms;
 
 namespace SNAKE_Mračanský
 {
-    public partial class Form1 : Form
-    {
-        private List<Circle> Snake = new List<Circle>();
-        private Circle food = new Circle();
+	public partial class Form1 : Form
+	{
+		private List<Circle> Snake = new List<Circle>();
+		private List<Circle> foodLocations = new List<Circle>();
 
-        int maxWidth;
-        int maxHeight;
+		int maxWidth;
+		int maxHeight;
 
-        int score;
-        int highScore;
+		int score;
+		int highScore;
 
-        Random rnd = new Random();
+		Random rnd = new Random();
 
-        bool goLeft, goRight, goDown, goUp;
-        bool isGameStopped;
-        public Form1()
-        {
-            InitializeComponent();
-            new Setting();
-        }
+		const int desiredFoodAmount = 5;
+		bool goLeft, goRight, goDown, goUp;
+		bool isGameStopped;
+		public Form1()
+		{
+			InitializeComponent();
+			KeyPreview = true;
+			new Setting();
+		}
 
-        private void KeyIsDown(object sender, KeyEventArgs e)
-        {
-            if(e.KeyCode == Keys.Left && Setting.directions != "right")
-            {
-                goLeft = true;
-            }
-            if (e.KeyCode == Keys.Right && Setting.directions != "left")
-            {
-                goRight = true;
-            }
-            if (e.KeyCode == Keys.Up && Setting.directions != "down")
-            {
-                goUp = true;
-            }
-            if (e.KeyCode == Keys.Down && Setting.directions != "up")
-            {
-                goDown = true;
-            }
-        }
+		private void KeyIsDown(object sender, KeyEventArgs e)
+		{
+			if (e.KeyCode == Keys.A && Setting.directions != "right")
+			{
+				goLeft = true;
+				goRight = false;
+				goUp = false;
+				goDown = false;
+			}
+			if (e.KeyCode == Keys.D && Setting.directions != "left")
+			{
+				goRight = true;
+				goUp = false;
+				goDown = false;
+				goLeft = false;
+			}
+			if (e.KeyCode == Keys.W && Setting.directions != "down")
+			{
+				goUp = true;
+				goDown = false;
+				goLeft = false;
+				goRight = false;
+			}
+			if (e.KeyCode == Keys.S && Setting.directions != "up")
+			{
+				goDown = true;
+				goLeft = false;
+				goRight = false;
+				goUp = false;
+			}
+		}
 
-        private void KeyIsUp(object sender, KeyEventArgs e)
-        {
-            if (e.KeyCode == Keys.Left)
-            {
-                goLeft = false;
-            }
-            if (e.KeyCode == Keys.Right)
-            {
-                goRight = false;
-            }
-            if (e.KeyCode == Keys.Up)
-            {
-                goUp = false;
-            }
-            if (e.KeyCode == Keys.Down)
-            {
-                goDown = false;
-            }
-        }
+		private void StartGame(object sender, EventArgs e)
+		{
+			RestartGame();
+		}
 
-        private void StartGame(object sender, EventArgs e)
-        {
-            RestartGame();
-        }
+		private void stopGame(object sender, EventArgs e)
+		{
+			if (isGameStopped) return;
+			gameTimer.Enabled = !gameTimer.Enabled;
 
-        private void stopGame(object sender, EventArgs e)
-        {            
-            gameTimer.Stop();         
-        }
+		}
 
-        private void gameTimerEvent(object sender, EventArgs e)
-        {
-            if(goLeft)
-            {
-                Setting.directions = "left";
-            }
-            if (goRight)
-            {
-                Setting.directions = "right";
-            }
-            if (goDown)
-            {
-                Setting.directions = "down";
-            }
-            if (goUp)
-            {
-                Setting.directions = "up";
-            }
+		private void gameTimerEvent(object sender, EventArgs e)
+		{
+#warning místo stringu na směr by bylo fajn použít enum Direction { Left, Right ... }
+			if (goLeft)
+			{
+				Setting.directions = "left";
+			}
+			if (goRight)
+			{
+				Setting.directions = "right";
+			}
+			if (goDown)
+			{
+				Setting.directions = "down";
+			}
+			if (goUp)
+			{
+				Setting.directions = "up";
+			}
 
-            for (int i = Snake.Count - 1; i >= 0; i--)
-            {
-                if (i == 0)
-                {
-                    switch (Setting.directions)
-                    {
-                        case "left":
-                            Snake[i].X--;
-                            break;
-                        case "right":
-                            Snake[i].X++;
-                            break;
-                        case "down":
-                            Snake[i].Y++;
-                            break;
-                        case "up":
-                            Snake[i].Y--;                           
-                            break;
-                    }
+			for (int i = Snake.Count - 1; i >= 0; i--)
+			{
+#warning toto je docela prasečina
+				if (i == 0)
+				{
+					switch (Setting.directions)
+					{
+						case "left":
+							Snake[i].X--;
+							break;
+						case "right":
+							Snake[i].X++;
+							break;
+						case "down":
+							Snake[i].Y++;
+							break;
+						case "up":
+							Snake[i].Y--;
+							break;
+					}
 
-                    if (Snake[i].X < 0)
-                    {
-                        Snake[i].X = maxWidth;
-                    }
-                    if (Snake[i].X > maxWidth)
-                    {
-                        Snake[i].X = 0;
-                    }
-                    if (Snake[i].Y < 0)
-                    {
-                        Snake[i].Y = maxHeight;
-                    }
-                    if (Snake[i].Y > maxHeight)
-                    {
-                        Snake[i].Y = 0;
-                    }
+					if (Snake[i].X < 0)
+					{
+						Snake[i].X = maxWidth;
+					}
+					if (Snake[i].X > maxWidth)
+					{
+						Snake[i].X = 0;
+					}
+					if (Snake[i].Y < 0)
+					{
+						Snake[i].Y = maxHeight;
+					}
+					if (Snake[i].Y > maxHeight)
+					{
+						Snake[i].Y = 0;
+					}
 
 
-                    if(Snake[i].X == food.X && Snake[i].Y == food.Y)
-                    {
-                        EatFood();
-                    }
+					Circle snakeHead = Snake[i];
+					foreach (Circle food in foodLocations)
+					{
+						if (snakeHead.X == food.X && snakeHead.Y == food.Y)
+						{
+							EatFood(food);
+							MaintainDesiredFoodAmount();
+							break;
+						}
+					}
 
-                    for (int j = 1; j < Snake.Count; j++)
-                    {
-                        if (Snake[i].X == Snake[j].X && Snake[i].Y == Snake[j].Y)
-                        {
-                            GameOver();
-                        }
+					for (int j = 1; j < Snake.Count; j++)
+					{
+						if (Snake[i].X == Snake[j].X && Snake[i].Y == Snake[j].Y)
+						{
+							GameOver();
+						}
 
-                    }
-                }
-                else
-                {
-                    Snake[i].X = Snake[i - 1].X;
-                    Snake[i].Y = Snake[i - 1].Y;
-                }                
-            }
-            picCanvas.Invalidate();
+					}
+				}
+				else
+				{
+					Snake[i].X = Snake[i - 1].X;
+					Snake[i].Y = Snake[i - 1].Y;
+				}
+			}
+			picCanvas.Invalidate();
 
-            if(score >= 10 && score < 20)
-            {
-                gameTimer.Interval = 85;
-            }
-            if (score >= 20 && score < 30)
-            {
-                gameTimer.Interval = 70;
-            }
-            if (score >= 30 && score < 40)
-            {
-                gameTimer.Interval = 55;
-            }
-            if (score >= 40 && score < 50)
-            {
-                gameTimer.Interval = 40;
-            }
-            if(score == 50)
-            {
-                MessageBox.Show("Vyhrál jsi!");
-                RestartGame();
-            }
-        }
+			if (score >= 10 && score < 20)
+			{
+				gameTimer.Interval = 85;
+			}
+			if (score >= 20 && score < 30)
+			{
+				gameTimer.Interval = 70;
+			}
+			if (score >= 30 && score < 40)
+			{
+				gameTimer.Interval = 55;
+			}
+			if (score >= 40 && score < 50)
+			{
+				gameTimer.Interval = 40;
+			}
+			if (score == 50)
+			{
+				MessageBox.Show("Vyhrál jsi!");
+				RestartGame();
+			}
+		}
 
-        private void UpdatePictureBoxGraphics(object sender, PaintEventArgs e)
-        {
-            Graphics kp = e.Graphics;
+		private void UpdatePictureBoxGraphics(object sender, PaintEventArgs e)
+		{
+			Graphics kp = e.Graphics;
 
-            Brush snakeColour;
+			Brush snakeColour;
 
-            for (int i = 0; i < Snake.Count; i++)
-            {
-                if (i == 0)
-                {
-                    snakeColour = Brushes.Black;
-                }
-                else
-                {
-                    snakeColour = Brushes.Red;
-                }
+			for (int i = 0; i < Snake.Count; i++)
+			{
+				if (i == 0)
+				{
+					snakeColour = Brushes.Black;
+				}
+				else
+				{
+					snakeColour = Brushes.Red;
+				}
 
-                kp.FillEllipse(snakeColour, new Rectangle
-                    (
-                    Snake[i].X * Setting.Width,
-                    Snake[i].Y * Setting.Height,
-                    Setting.Width,
-                    Setting.Height                    
-                    ));
-                    
-            }
-           
-                kp.FillEllipse(Brushes.Green, new Rectangle
-                   (
-                   food.X * Setting.Width,
-                   food.Y * Setting.Height,
-                   Setting.Width,
-                   Setting.Height
-                   ));
-                       
-        }
+				kp.FillEllipse(snakeColour, new Rectangle
+					(
+					Snake[i].X * Setting.Width,
+					Snake[i].Y * Setting.Height,
+					Setting.Width,
+					Setting.Height
+					));
 
-        private void RestartGame()
-        {
-            maxWidth = picCanvas.Width / Setting.Width - 1;
-            maxHeight = picCanvas.Height / Setting.Height - 1;
+			}
 
-            Snake.Clear();
+			foreach (Circle food in foodLocations)
+			{
+				kp.FillEllipse(Brushes.Green, new Rectangle
+				   (
+				   food.X * Setting.Width,
+				   food.Y * Setting.Height,
+				   Setting.Width,
+				   Setting.Height
+				   ));
+			}
 
-            startButton.Enabled = false;
-            startButton.Enabled = false;
-            score = 0;
-            txtScore.Text = "Score: " + score;
+		}
 
-            Circle head = new Circle { X = 10, Y = 5};
-            Snake.Add(head);
+		private void RestartGame()
+		{
+			maxWidth = picCanvas.Width / Setting.Width - 1;
+			maxHeight = picCanvas.Height / Setting.Height - 1;
 
-            for (int i = 0; i < 3; i++)
-            {
-                Circle body = new Circle();
-                Snake.Add(body);
-            }
-           
-            food = new Circle { X = rnd.Next(2, maxWidth), Y = rnd.Next(2, maxHeight) };          
+			Snake.Clear();
 
-            gameTimer.Start();
-        }
+			startButton.Enabled = false;
+			score = 0;
+			txtScore.Text = "Score: " + score;
 
-        private void EatFood()
-        {
-            score += 1;
+			Circle head = new Circle { X = 10, Y = 5 };
+			Snake.Add(head);
 
-            txtScore.Text = "Score: " + score;
+			for (int i = 0; i < 3; i++)
+			{
+				Circle body = new Circle();
+				Snake.Add(body);
+			}
 
-            Circle body = new Circle
-            {
-                X = Snake[Snake.Count - 1].X,
-                Y = Snake[Snake.Count - 1].Y
-            };
+			MaintainDesiredFoodAmount();
+			gameTimer.Start();
+			isGameStopped = false;
+		}
 
-            Snake.Add(body);
+		private void EatFood(Circle food)
+		{
+			score += 1;
+			foodLocations.Remove(food);
 
-            food = new Circle { X = rnd.Next(2, maxWidth), Y = rnd.Next(2, maxHeight) };
-        }
+			txtScore.Text = "Score: " + score;
 
-        private void GameOver()
-        {
-            gameTimer.Stop();
-            startButton.Enabled = true;
-            stopButton.Enabled = true;
-            MessageBox.Show("Prohrál jsi");
+			Circle body = new Circle
+			{
+				X = Snake[Snake.Count - 1].X,
+				Y = Snake[Snake.Count - 1].Y
+			};
 
-            if(score > highScore)
-            {
-                highScore = score;
+			Snake.Add(body);
+		}
 
-                txtHighScore.Text = "High Score: " + highScore;
-            }
-        }
-    }
+		void MaintainDesiredFoodAmount()
+		{
+			while (foodLocations.Count < desiredFoodAmount)
+			{
+				foodLocations.Add(CreateNewFood());
+
+			}
+		}
+
+		Circle CreateNewFood()
+		{
+#warning jídlo se může vygenerovat v hadovi nebo na stejné pozici jako jiné jídlo
+			return new Circle { X = rnd.Next(2, maxWidth), Y = rnd.Next(2, maxHeight) };
+
+		}
+
+		private void GameOver()
+		{
+			gameTimer.Stop();
+			startButton.Enabled = true;
+			stopButton.Enabled = true;
+			isGameStopped = true;
+			MessageBox.Show("Prohrál jsi");
+
+			if (score > highScore)
+			{
+				highScore = score;
+
+				txtHighScore.Text = "High Score: " + highScore;
+			}
+		}
+	}
 }
